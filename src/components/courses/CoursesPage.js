@@ -1,63 +1,71 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import * as courseActions from './../../redux/actions/courseActions';
+import * as authorActions from './../../redux/actions/authorActions';
+
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
+import CoursesList from './CourseList';
 
 class CoursesPage extends React.Component {
-  // this is called class field as well
-  state = {
-    course: {
-      title: ''
+  componentDidMount() {
+    const { courses, authors, actions } = this.props;
+
+    if (courses.length === 0) {
+      actions.loadCourses().catch((error) => {
+        alert('Loading courses failed:', error);
+      });
     }
-  };
 
-  // using the arrow here in that way is called a "class field" ,
-  // this will bind to the right "this" of the class
-  // Arrow functions inherit the binding context of their enclosing scope
-  handleChange = (event) => {
-    const course = { ...this.state.course, title: event.target.value };
-    this.setState({ course });
-  };
-
-  handleSubmit = (event) => {
-    event.preventDefault(); // to avoid the page of reposting
-    this.props.actions.createCourse(this.state.course);
-  };
+    if (authors.length === 0) {
+      actions.loadAuthors().catch((error) => {
+        alert('Loading authors failed:', error);
+      });
+    }
+  }
 
   render() {
     return (
-      <form onSubmit={this.handleSubmit}>
+      <>
         <h2>Courses</h2>
-        <h3>Add Course</h3>
-        <input
-          type="text"
-          onChange={this.handleChange}
-          value={this.state.course.title}
+        <CoursesList
+          courses={this.props.courses}
+          authors={this.props.authors}
         />
-        <input type="submit" value="Save" />
-        {this.props.courses.map((course) => (
-          <div key={course.title}>{course.title}</div>
-        ))}
-      </form>
+      </>
     );
   }
 }
 
 CoursesPage.propTypes = {
   courses: PropTypes.array.isRequired,
+  authors: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired
 };
 
 function mapStateToProps(state) {
   return {
-    courses: state.courses
+    courses:
+      state.authors.length === 0
+        ? []
+        : state.courses.map((course) => {
+            return {
+              ...course,
+              authorName: state.authors.find(
+                (author) => author.id === course.authorId
+              ).name
+            };
+          }),
+    authors: state.authors
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators(courseActions, dispatch)
+    actions: {
+      loadCourses: bindActionCreators(courseActions.loadCourses, dispatch),
+      loadAuthors: bindActionCreators(authorActions.loadAuthors, dispatch)
+    }
   };
 }
 
